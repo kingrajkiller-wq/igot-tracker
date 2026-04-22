@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1565C0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>iGOT Tracker PRO</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    :root {
+      --primary: #1565C0;
+      --primary-dark: #0D47A1;
+      --primary-light: #1976D2;
+      --accent: #FF6F00;
+      --green: #2E7D32;
+      --red: #C62828;
+      --surface: #FFFFFF;
+      --bg: #F5F7FA;
+      --text: #1A1A2E;
+      --text-sec: #5C6470;
+      --border: #E0E4EA;
+      --shadow: 0 2px 8px rgba(0,0,0,0.12);
+      --radius: 14px;
+      --nav-h: 64px;
+      --top-h: 56px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Roboto', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ===== TOP APP BAR ===== */
+    #topBar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--top-h);
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 100;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #topBar .app-title {
+      flex: 1;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    #topBar .top-icon {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #topBar .top-icon:active { background: rgba(255,255,255,0.3); }
+
+    /* ===== PAGE CONTAINER ===== */
+    #pageContainer {
+      position: fixed;
+      top: var(--top-h);
+      bottom: var(--nav-h);
+      left: 0; right: 0;
+      overflow: hidden;
+    }
+    .page {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      padding: 14px 14px 10px;
+      display: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    .page.active { display: block; }
+
+    /* ===== BOTTOM NAV ===== */
+    #bottomNav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-sec);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 8px 4px;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .nav-btn .nav-icon { font-size: 21px; line-height: 1; }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 20%; right: 20%;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 0 0 3px 3px;
+    }
+
+    /* ===== DASHBOARD PAGE ===== */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 10px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-card .s-val {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .stat-card .s-lbl {
+      font-size: 10px;
+      color: var(--text-sec);
+      font-weight: 500;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card.total .s-val { color: var(--primary); }
+    .stat-card.done .s-val { color: var(--green); }
+    .stat-card.pending .s-val { color: var(--red); }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 14px 0 8px;
+    }
+
+    /* File Upload Cards */
+    .file-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      border: 2px dashed var(--border);
+      transition: border-color 0.2s;
+    }
+    .file-card.loaded { border: 2px solid var(--green); }
+    .file-card .fc-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .file-card.course .fc-icon { background: #E3F2FD; }
+    .file-card.master .fc-icon { background: #E8F5E9; }
+    .file-card .fc-text { flex: 1; }
+    .file-card .fc-name { font-size: 14px; font-weight: 600; }
+    .file-card .fc-sub { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+    .file-card .fc-badge {
+      background: var(--green);
+      color: white;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .file-card input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+
+    /* Progress Bar */
+    .progress-wrap {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+    }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 13px; font-weight: 600; margin-bottom: 8px;
+    }
+    .progress-bar {
+      height: 10px;
+      background: var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #66BB6A);
+      border-radius: 5px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    /* Quick actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .qa-btn {
+      background: var(--surface);
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .qa-btn:active { transform: scale(0.97); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .qa-btn .qa-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .qa-btn.excel .qa-icon { background: #E8F5E9; }
+    .qa-btn.word .qa-icon { background: #E3F2FD; }
+    .qa-btn.import .qa-icon { background: #FFF8E1; }
+    .qa-btn.print .qa-icon { background: #FCE4EC; }
+    .qa-btn.reset .qa-icon { background: #EFEBE9; }
+    .qa-btn.pending .qa-icon { background: #FFF3E0; }
+
+    /* ===== ADD ENTRY PAGE ===== */
+    .form-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+    .form-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .field-group { margin-bottom: 12px; }
+    .field-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    .field-group input,
+    .field-group select,
+    .field-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+      font-family: inherit;
+    }
+    .field-group input:focus,
+    .field-group select:focus,
+    .field-group textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+      background: white;
+    }
+    .field-group input.duplicate {
+      border-color: var(--red) !important;
+      background: #FFEBEE !important;
+    }
+    .dup-msg {
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: none;
+    }
+    .field-group textarea { resize: none; line-height: 1.5; }
+    .field-group select { cursor: pointer; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 4px;
+      letter-spacing: 0.3px;
+    }
+    .submit-btn:active { background: var(--primary-dark); transform: scale(0.99); }
+    .submit-btn.update { background: var(--accent); }
+
+    /* ===== TABLE PAGE ===== */
+    .search-bar {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      border: 1.5px solid var(--border);
+    }
+    .search-bar input {
+      flex: 1;
+      border: none;
+      background: none;
+      padding: 13px 0;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+    .search-bar .s-icon { color: var(--text-sec); font-size: 18px; }
+
+    .record-count {
+      font-size: 12px;
+      color: var(--text-sec);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    /* Record Cards */
+    .rec-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--primary);
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .rec-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .rec-uid {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .rec-rank {
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .rec-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .rec-sub { font-size: 13px; color: var(--text-sec); margin-bottom: 6px; }
+    .rec-detail {
+      font-size: 12px;
+      color: var(--text-sec);
+      line-height: 1.5;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .rec-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .rec-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .rec-btn:active { opacity: 0.7; }
+    .rec-btn.edit { background: #FFF8E1; color: var(--accent); }
+    .rec-btn.del { background: #FFEBEE; color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-sec);
+    }
+    .empty-state .e-icon { font-size: 50px; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ===== PENDING PAGE ===== */
+    .pending-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--red);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .pending-card .pc-info { flex: 1; }
+    .pending-card .pc-uid { font-size: 14px; font-weight: 700; color: var(--text); }
+    .pending-card .pc-name { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+    .pending-card .pc-sub { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+    .fill-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .fill-btn:active { background: var(--primary-dark); }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + 14px);
+      left: 14px; right: 14px;
+      background: #323232;
+      color: white;
+      padding: 13px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      z-index: 500;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ===== FAB ===== */
+    #fab {
+      position: fixed;
+      bottom: calc(var(--nav-h) + 16px);
+      right: 16px;
+      width: 56px; height: 56px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 26px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(255,111,0,0.45);
+      z-index: 99;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(255,111,0,0.3); }
+    #fab.hidden { display: none; }
+
+    /* ===== MODAL (Export/Import actions) ===== */
+    .bottom-sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+    }
+    .bottom-sheet-overlay.active { display: flex; }
+    .bottom-sheet {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      padding: 12px 0 calc(var(--nav-h) + 4px);
+      width: 100%;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .bs-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 14px;
+    }
+    .bs-title {
+      font-size: 15px;
+      font-weight: 700;
+      padding: 0 20px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .bs-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 15px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+    .bs-item:active { background: var(--bg); }
+    .bs-item .bi-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .bs-item .bi-label { font-weight: 600; }
+    .bs-item .bi-sub { font-size: 12px; color: var(--text-sec); margin-top: 1px; }
+
+    @media print {
+      #topBar, #bottomNav, #fab, .rec-actions, .search-bar, .quick-actions, .file-card, .stats-row { display: none !important; }
+      #pageContainer { top: 0; bottom: 0; }
+      .page { display: block !important; overflow: visible; }
+      #tablePage { display: block !important; }
+      #dashPage, #addPage, #pendingPage { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="topBar">
+  <span style="font-size:22px">📋</span>
+  <span class="app-title" id="pageTitle">Dashboard</span>
+  <button class="top-icon" onclick="showMoreMenu()" title="More options">⋮</button>
+</div>
+
+<!-- Pages -->
+<div id="pageContainer">
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="dashPage">
+    <div class="stats-row">
+      <div class="stat-card total">
+        <div class="s-val" id="dashTotal">0</div>
+        <div class="s-lbl">Master</div>
+      </div>
+      <div class="stat-card done">
+        <div class="s-val" id="dashDone">0</div>
+        <div class="s-lbl">Added</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="s-val" id="dashPending">0</div>
+        <div class="s-lbl">Pending</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progress</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="section-title">Load Files</div>
+
+    <div class="file-card course" id="courseCard" onclick="document.getElementById('courseFile').click()">
+      <div class="fc-icon">📊</div>
+      <div class="fc-text">
+        <div class="fc-name">Rank-Course Reference</div>
+        <div class="fc-sub" id="courseSub">Tap to load Excel file</div>
+      </div>
+      <span class="fc-badge" id="courseBadge" style="display:none">✓ Loaded</span>
+      <input type="file" id="courseFile" accept=".xlsx,.xls">
+    </div>
+
+    <div class="file-card master" id="masterCard" onclick="document.getElementById('masterFile').click()">
+      <div class="fc-icon">👥</div>
+      <div class="fc-text">
+        <div class="fc-name">Master UID File</div>
+        <div class="fc-sub" id="masterSub">Tap to load Excel file</div>
+      </div>
+      <span class="fc-badge" id="masterBadge" style="display:none">✓ Loaded</span>
+      <input type="file" id="masterFile" accept=".xlsx,.xls">
+    </div>
+
+    <div class="section-title">Actions</div>
+    <div class="quick-actions">
+      <button class="qa-btn excel" onclick="exportTable()">
+        <div class="qa-icon">📊</div><div>Export Excel</div>
+      </button>
+      <button class="qa-btn word" onclick="exportWord()">
+        <div class="qa-icon">📝</div><div>Export Word</div>
+      </button>
+      <button class="qa-btn import" onclick="document.getElementById('importInput').click()">
+        <div class="qa-icon">📥</div><div>Import Excel</div>
+      </button>
+      <button class="qa-btn print" onclick="window.print()">
+        <div class="qa-icon">📑</div><div>Print / PDF</div>
+      </button>
+      <button class="qa-btn pending" onclick="showPage('pendingPage','Pending List','3')">
+        <div class="qa-icon">⏳</div><div>Pending List</div>
+      </button>
+      <button class="qa-btn reset" onclick="clearAll()">
+        <div class="qa-icon">🗑️</div><div>Reset All</div>
+      </button>
+    </div>
+    <input type="file" id="importInput" style="display:none" onchange="importTable(this)">
+  </div>
+
+  <!-- ADD ENTRY PAGE -->
+  <div class="page" id="addPage">
+    <form id="dataForm">
+      <div class="form-card">
+        <h3>🪪 Personal Details</h3>
+        <div class="field-group">
+          <label>UID Number *</label>
+          <input type="text" id="uid" placeholder="Enter UID Number" required inputmode="numeric">
+          <div id="dupMsg" class="dup-msg">⚠️ Duplicate UID! Already in Table.</div>
+        </div>
+        <div class="field-group">
+          <label>Rank</label>
+          <select id="rank_select"><option value="">-- Select Rank --</option></select>
+        </div>
+        <div class="field-group">
+          <label>Full Name</label>
+          <input type="text" id="name" placeholder="Full Name" autocomplete="off">
+        </div>
+        <div class="field-group">
+          <label>Coy / Unit</label>
+          <input type="text" id="coy" placeholder="Company / Unit">
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📞 Contact Details</h3>
+        <div class="field-group">
+          <label>NIC Mail ID</label>
+          <input type="email" id="nic_mail" placeholder="NIC Email Address" inputmode="email">
+        </div>
+        <div class="field-group">
+          <label>Mobile Number</label>
+          <input type="tel" id="mobile" placeholder="Mobile Number" inputmode="tel">
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📚 Course Details</h3>
+        <div class="field-group">
+          <label>Course Details</label>
+          <textarea id="courses" rows="4" placeholder="Course Details..."></textarea>
+        </div>
+        <div class="field-group">
+          <label>Completion Dates</label>
+          <textarea id="compDates" rows="2" placeholder="Completion Dates..."></textarea>
+        </div>
+        <div class="field-group">
+          <label>QR Codes / Remarks</label>
+          <textarea id="qr" rows="2" placeholder="QR Codes / Remarks"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" id="mainBtn" class="submit-btn">➕ Add to Table</button>
+      <div style="height:10px"></div>
+    </form>
+  </div>
+
+  <!-- TABLE / RECORDS PAGE -->
+  <div class="page" id="tablePage">
+    <div class="search-bar">
+      <span class="s-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search records..." onkeyup="filterTable()">
+    </div>
+    <div class="record-count" id="recordCount">0 records</div>
+    <div id="recList"></div>
+  </div>
+
+  <!-- PENDING PAGE -->
+  <div class="page" id="pendingPage">
+    <div class="search-bar">
+      <span class="s-icon">🔍</span>
+      <input type="text" id="pendingSearch" placeholder="Search pending..." oninput="filterPending()">
+    </div>
+    <div class="record-count" id="pendingCountLabel">Loading...</div>
+    <div id="pendingList"></div>
+
+    <div style="margin-top:12px">
+      <button onclick="exportPendingExcel()" style="width:100%;padding:14px;background:var(--green);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">📊 Export Pending List</button>
+    </div>
+    <div style="height:10px"></div>
+  </div>
+
+</div>
+
+<!-- Bottom Navigation -->
+<div id="bottomNav">
+  <button class="nav-btn active" id="nav0" onclick="showPage('dashPage','Dashboard','0')">
+    <span class="nav-icon">🏠</span>Home
+  </button>
+  <button class="nav-btn" id="nav1" onclick="showPage('addPage','Add Entry','1')">
+    <span class="nav-icon">➕</span>Add
+  </button>
+  <button class="nav-btn" id="nav2" onclick="showPage('tablePage','Records','2')">
+    <span class="nav-icon">📋</span>Records
+  </button>
+  <button class="nav-btn" id="nav3" onclick="showPage('pendingPage','Pending List','3')">
+    <span class="nav-icon">⏳</span>Pending
+  </button>
+</div>
+
+<!-- FAB -->
+<button id="fab" onclick="showPage('addPage','Add Entry','1')" title="Add Entry">+</button>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// --- DATA ---
+let courseMapping = JSON.parse(sessionStorage.getItem('courseMapping') || '{}');
+let masterData = JSON.parse(sessionStorage.getItem('masterData') || '[]');
+
+// Helper
+function getVal(row, tags) {
+  if (!row) return "";
+  const key = Object.keys(row).find(k => tags.some(t => k.toLowerCase().includes(t.toLowerCase())));
+  return key ? String(row[key]) : "";
+}
+
+// --- NAVIGATION ---
+let currentPage = 'dashPage';
+function showPage(pageId, title, navIdx) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav' + navIdx).classList.add('active');
+  document.getElementById('pageTitle').innerText = title;
+  document.getElementById('fab').classList.toggle('hidden', pageId !== 'dashPage' && pageId !== 'tablePage');
+  currentPage = pageId;
+
+  if (pageId === 'tablePage') renderRecords();
+  if (pageId === 'pendingPage') renderPending();
+}
+
+// --- TOAST ---
+function toast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// --- UI UPDATE ---
+function updateUI() {
+  const tableRows = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]').length;
+  const total = masterData.length;
+  const done = tableRows;
+  const pend = Math.max(0, total - done);
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('dashTotal').innerText = total;
+  document.getElementById('dashDone').innerText = done;
+  document.getElementById('dashPending').innerText = pend;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').innerText = pct + '%';
+
+  if (Object.keys(courseMapping).length > 0) {
+    document.getElementById('courseCard').classList.add('loaded');
+    document.getElementById('courseBadge').style.display = 'inline';
+    document.getElementById('courseSub').innerText = Object.keys(courseMapping).length + ' ranks loaded';
+  }
+  if (masterData.length > 0) {
+    document.getElementById('masterCard').classList.add('loaded');
+    document.getElementById('masterBadge').style.display = 'inline';
+    document.getElementById('masterSub').innerText = masterData.length + ' personnel loaded';
+  }
+
+  // Populate rank select
+  const select = document.getElementById('rank_select');
+  if (Object.keys(courseMapping).length > 0 && select.options.length <= 1) {
+    Object.keys(courseMapping).sort().forEach(r => select.add(new Option(r, r)));
+  }
+}
+
+// --- FILE LOADERS ---
+document.getElementById('masterFile').onchange = (e) => {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const wb = XLSX.read(ev.target.result, { type: 'array' });
+    masterData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    sessionStorage.setItem('masterData', JSON.stringify(masterData));
+    updateUI();
+    toast('✅ Master Data Loaded! ' + masterData.length + ' records');
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+};
+
+document.getElementById('courseFile').onchange = (e) => {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const wb = XLSX.read(ev.target.result, { type: 'array' });
+    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    courseMapping = {};
+    json.forEach(row => {
+      const r = getVal(row, ["rank", "designation"]);
+      const c = getVal(row, ["course"]);
+      if (r && c) courseMapping[r] = c.toString().replace(/\s*(\d+\.)/g, '\n$1').trim();
+    });
+    sessionStorage.setItem('courseMapping', JSON.stringify(courseMapping));
+    location.reload();
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+};
+
+// --- UID AUTO-FILL + DUPLICATE CHECK ---
+document.getElementById('uid').oninput = function () {
+  const val = this.value.trim();
+  const existing = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]').map(r => String(r.uid).trim());
+
+  if (existing.includes(val) && document.getElementById('mainBtn').innerText !== "Update Record") {
+    this.classList.add('duplicate');
+    document.getElementById('dupMsg').style.display = 'block';
+  } else {
+    this.classList.remove('duplicate');
+    document.getElementById('dupMsg').style.display = 'none';
+  }
+
+  const match = masterData.find(r => String(getVal(r, ["uid", "id", "no"])).trim() === val);
+  if (match) {
+    document.getElementById('name').value = getVal(match, ["name", "emp"]);
+    document.getElementById('nic_mail').value = getVal(match, ["mail", "email"]);
+    document.getElementById('mobile').value = getVal(match, ["mobile", "phone", "contact"]);
+    document.getElementById('coy').value = getVal(match, ["coy", "unit", "company"]);
+    const r = getVal(match, ["rank", "designation"]);
+    if (r) {
+      let select = document.getElementById('rank_select');
+      select.value = r;
+      if (!select.value) { select.add(new Option(r, r)); select.value = r; }
+      document.getElementById('courses').value = courseMapping[r] || '';
+    }
+  }
+};
+
+// --- FORM SUBMIT ---
+document.getElementById('dataForm').onsubmit = function (e) {
+  e.preventDefault();
+  const uidInput = document.getElementById('uid');
+  const existing = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+
+  if (this.dataset.mode !== 'edit' && existing.some(r => String(r.uid).trim() === uidInput.value.trim())) {
+    toast('⚠️ Duplicate UID detected!'); return;
+  }
+
+  const d = {
+    uid: uidInput.value.trim(),
+    rank: document.getElementById('rank_select').value,
+    name: document.getElementById('name').value,
+    coy: document.getElementById('coy').value,
+    mail: document.getElementById('nic_mail').value,
+    mobile: document.getElementById('mobile').value,
+    courses: document.getElementById('courses').value,
+    dates: document.getElementById('compDates').value,
+    qr: document.getElementById('qr').value
+  };
+
+  if (this.dataset.mode === 'edit') {
+    const data = existing.filter(r => String(r.uid).trim() !== d.uid);
+    data.push(d);
+    localStorage.setItem('igot_offline_data_v1', JSON.stringify(data));
+    toast('✅ Record Updated!');
+  } else {
+    existing.push(d);
+    localStorage.setItem('igot_offline_data_v1', JSON.stringify(existing));
+    toast('✅ Record Added!');
+  }
+
+  this.reset();
+  this.dataset.mode = '';
+  document.getElementById('mainBtn').innerText = "➕ Add to Table";
+  document.getElementById('mainBtn').className = 'submit-btn';
+  updateUI();
+  showPage('tablePage', 'Records', '2');
+};
+
+// --- RENDER RECORDS ---
+function renderRecords() {
+  const data = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('recList');
+  list.innerHTML = '';
+
+  const filtered = data.filter(r =>
+    Object.values(r).join(' ').toLowerCase().includes(q)
+  );
+
+  document.getElementById('recordCount').innerText = filtered.length + ' record' + (filtered.length !== 1 ? 's' : '');
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="e-icon">📋</div><h3>No Records Found</h3><p>${q ? 'Try different search terms' : 'Add entries using the ➕ Add tab'}</p></div>`;
+    return;
+  }
+
+  filtered.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'rec-card';
+    card.innerHTML = `
+      <div class="rec-header">
+        <span class="rec-uid">${r.uid}</span>
+        <span class="rec-rank">${r.rank || '—'}</span>
+      </div>
+      <div class="rec-name">${r.name || '—'}</div>
+      <div class="rec-sub">📍 ${r.coy || '—'} &nbsp;|&nbsp; 📱 ${r.mobile || '—'}</div>
+      ${r.courses ? `<div class="rec-detail">📚 ${r.courses.split('\n').slice(0,2).join(', ')}${r.courses.split('\n').length > 2 ? '...' : ''}</div>` : ''}
+      <div class="rec-actions">
+        <button class="rec-btn edit" onclick="editRecord('${r.uid}')">✏️ Edit</button>
+        <button class="rec-btn del" onclick="deleteRecord('${r.uid}')">🗑️ Delete</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function filterTable() { renderRecords(); }
+
+function editRecord(uid) {
+  const data = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+  const r = data.find(d => String(d.uid).trim() === String(uid).trim());
+  if (!r) return;
+  document.getElementById('uid').value = r.uid;
+  document.getElementById('rank_select').value = r.rank;
+  if (!document.getElementById('rank_select').value && r.rank) {
+    document.getElementById('rank_select').add(new Option(r.rank, r.rank));
+    document.getElementById('rank_select').value = r.rank;
+  }
+  document.getElementById('name').value = r.name;
+  document.getElementById('coy').value = r.coy;
+  document.getElementById('nic_mail').value = r.mail;
+  document.getElementById('mobile').value = r.mobile;
+  document.getElementById('courses').value = r.courses;
+  document.getElementById('compDates').value = r.dates;
+  document.getElementById('qr').value = r.qr;
+  document.getElementById('dataForm').dataset.mode = 'edit';
+  document.getElementById('mainBtn').innerText = "💾 Update Record";
+  document.getElementById('mainBtn').className = 'submit-btn update';
+  showPage('addPage', 'Edit Entry', '1');
+}
+
+function deleteRecord(uid) {
+  if (!confirm('Delete this record?')) return;
+  let data = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+  data = data.filter(r => String(r.uid).trim() !== String(uid).trim());
+  localStorage.setItem('igot_offline_data_v1', JSON.stringify(data));
+  updateUI();
+  renderRecords();
+  toast('🗑️ Record Deleted');
+}
+
+// --- PENDING LIST ---
+function renderPending() {
+  if (masterData.length === 0) {
+    document.getElementById('pendingList').innerHTML = '<div class="empty-state"><div class="e-icon">📂</div><h3>No Master File</h3><p>Load Master UID File from Dashboard</p></div>';
+    document.getElementById('pendingCountLabel').innerText = '';
+    return;
+  }
+
+  const done = new Set(JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]').map(r => String(r.uid).trim()));
+  const q = document.getElementById('pendingSearch').value.toLowerCase();
+
+  const pending = masterData.filter(row => {
+    const uid = String(getVal(row, ["uid", "id", "no"])).trim();
+    return uid && !done.has(uid);
+  });
+
+  const filtered = pending.filter(row => {
+    const uid = getVal(row, ["uid", "id", "no"]);
+    const rank = getVal(row, ["rank", "designation"]);
+    const name = getVal(row, ["name", "emp"]);
+    const coy = getVal(row, ["coy", "unit", "company"]);
+    return `${uid} ${rank} ${name} ${coy}`.toLowerCase().includes(q);
+  });
+
+  document.getElementById('pendingCountLabel').innerText = `${filtered.length} pending (${pending.length} total out of ${masterData.length})`;
+  const list = document.getElementById('pendingList');
+  list.innerHTML = '';
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="e-icon">🎉</div><h3>${q ? 'No Match' : 'All Done!'}</h3><p>${q ? 'Try different search' : 'All personnel have been added'}</p></div>`;
+    return;
+  }
+
+  filtered.forEach((row, i) => {
+    const uid  = getVal(row, ["uid", "id", "no"]);
+    const rank = getVal(row, ["rank", "designation"]);
+    const name = getVal(row, ["name", "emp"]);
+    const coy  = getVal(row, ["coy", "unit", "company"]);
+    const mob  = getVal(row, ["mobile", "phone", "contact"]);
+
+    const card = document.createElement('div');
+    card.className = 'pending-card';
+    card.innerHTML = `
+      <div class="pc-info">
+        <div class="pc-uid">${uid} &nbsp;<span style="font-size:11px;color:var(--text-sec);font-weight:500">${rank}</span></div>
+        <div class="pc-name">${name || '—'}</div>
+        <div class="pc-sub">📍 ${coy || '—'} &nbsp;|&nbsp; 📱 ${mob || '—'}</div>
+      </div>
+      <button class="fill-btn" onclick="fillFromPending('${uid}')">Fill ➕</button>`;
+    list.appendChild(card);
+  });
+}
+
+function filterPending() { renderPending(); }
+
+function fillFromPending(uid) {
+  document.getElementById('uid').value = uid;
+  document.getElementById('uid').dispatchEvent(new Event('input'));
+  showPage('addPage', 'Add Entry', '1');
+  setTimeout(() => document.getElementById('uid').focus(), 300);
+}
+
+// --- EXPORT ---
+function exportTable() {
+  const data = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+  if (!data.length) { toast('⚠️ No data to export'); return; }
+  const rows = [["UID","Rank","Name","Coy","NIC MAIL","Mobile","Course Details","Date","QR"]];
+  data.forEach(r => rows.push([r.uid, r.rank, r.name, r.coy, r.mail, r.mobile, r.courses, r.dates, r.qr]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "iGOT_Report");
+  XLSX.writeFile(wb, "iGOT_Master_Report.xlsx");
+  toast('📊 Excel Exported!');
+}
+
+function exportWord() {
+  const docxLib = window.docx;
+  if (!docxLib) { toast('⚠️ docx library not loaded. Check internet.'); return; }
+  const data = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+  if (!data.length) { toast('⚠️ No data to export'); return; }
+
+  const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType, AlignmentType } = docxLib;
+  const headerRow = new TableRow({
+    children: ["UID","Rank","Name","Coy","NIC MAIL","Mobile","Course Details","Date","QR"].map(h =>
+      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 18 })] })], shading: { fill: "1565C0" } })
+    )
+  });
+  const dataRows = data.map(r =>
+    new TableRow({
+      children: [r.uid, r.rank, r.name, r.coy, r.mail, r.mobile, r.courses, r.dates, r.qr].map(v =>
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(v || ''), size: 16 })] })] })
+      )
+    })
+  );
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { orientation: "landscape" } } },
+      children: [
+        new Paragraph({ children: [new TextRun({ text: "iGOT Master Tracker Report", bold: true, size: 28 })], alignment: AlignmentType.CENTER }),
+        new Paragraph({ text: "" }),
+        new Table({ rows: [headerRow, ...dataRows], width: { size: 100, type: WidthType.PERCENTAGE } })
+      ]
+    }]
+  });
+  Packer.toBlob(doc).then(blob => { saveAs(blob, "iGOT_Report.docx"); toast('📝 Word Exported!'); });
+}
+
+function importTable(input) {
+  const r = new FileReader();
+  r.onload = (e) => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    const existing = JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]');
+    let added = 0;
+    json.forEach(row => {
+      const uid = getVal(row, ["uid", "id", "no"]).trim();
+      if (uid && !existing.some(e => String(e.uid).trim() === uid)) {
+        existing.push({
+          uid, rank: getVal(row, ["rank"]), name: getVal(row, ["name", "emp"]),
+          coy: getVal(row, ["coy", "unit"]), mail: getVal(row, ["mail", "email"]),
+          mobile: getVal(row, ["mobile", "phone"]), courses: getVal(row, ["course"]),
+          dates: getVal(row, ["date"]), qr: getVal(row, ["qr", "remark"])
+        });
+        added++;
+      }
+    });
+    localStorage.setItem('igot_offline_data_v1', JSON.stringify(existing));
+    updateUI();
+    toast('✅ Imported ' + added + ' records!');
+  };
+  r.readAsArrayBuffer(input.files[0]);
+}
+
+function exportPendingExcel() {
+  const done = new Set(JSON.parse(localStorage.getItem('igot_offline_data_v1') || '[]').map(r => String(r.uid).trim()));
+  const pending = masterData.filter(row => {
+    const uid = String(getVal(row, ["uid", "id", "no"])).trim();
+    return uid && !done.has(uid);
+  });
+  if (!pending.length) { toast('✅ No pending records!'); return; }
+  const rows = [["#", "UID", "Rank", "Name", "Coy", "Mobile"]];
+  pending.forEach((row, i) => rows.push([i + 1, getVal(row, ["uid","id","no"]), getVal(row, ["rank","designation"]), getVal(row, ["name","emp"]), getVal(row, ["coy","unit","company"]), getVal(row, ["mobile","phone","contact"])]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Pending");
+  XLSX.writeFile(wb, "iGOT_Pending_List.xlsx");
+  toast('📊 Pending List Exported!');
+}
+
+function clearAll() {
+  if (confirm("Reset all table data? This cannot be undone.")) {
+    localStorage.removeItem('igot_offline_data_v1');
+    updateUI();
+    renderRecords();
+    toast('🗑️ All data cleared');
+  }
+}
+
+function showMoreMenu() {
+  toast('Use Dashboard → Actions for export/import options');
+}
+
+// --- INIT ---
+window.onload = () => { updateUI(); };
+</script>
+</body>
+</html>
